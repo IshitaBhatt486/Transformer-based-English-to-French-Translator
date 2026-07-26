@@ -37,3 +37,42 @@ We create a matrix of size (seq_length, dmodel) to hold the positional encodings
 - div_term: deonominator of the formula
 - register_buffer: Saves pe as part of the module's state so it moves automatically to GPU/CPU with the model, but tells PyTorch that this matrix contains non-learnable fixed parameters (no gradients needed).
 - self.dropout(x): Applies dropout to the combined embeddings for regularization.
+
+## Feed Forward Layer
+
+We apply linear->relu->dropout->linear
+
+## Multi-head Attention block
+
+h= number of heads
+d_k= depth
+wo= output matrix
+
+mask: if we dont want a word to interact with other words(hide the attention of those words). The mask can be used to replace filler words(padding used to reach the required sequeence length)
+
+we split these along the embedding dimension not the sequence dimension so that each head has access to the full sentence but a different part of the embedding of each word
+
+## Residual Connection
+- the connection that allows us to skip
+
+## Encoder
+- src_mask: mask applied to input- reason: hide the interaction of padding  words with other words
+- we have n encoders
+
+## Decoder
+- the output embeddings of the transformer are the same as the input embeddings(so the same class is initialized twice)
+- we have three residual connections
+- Cross Attention: crossing two kinds of different objects together and matching them
+self and cross attention blocks are the same but have different parameters
+x=output of decoder
+src_mask: source language- output of the encoder
+target_mask: target language- output of the decoder
+
+## Linear Layer
+
+## Transformer
+- we have source embedding for the source language
+- we have target embedding for the target language
+we have multiple forward methods instead of just one because during inference, we can reuse the output as the input- we do not need to recalculate it every time
+also keeping it seperate helps during visualization
+
