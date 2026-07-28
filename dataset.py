@@ -8,7 +8,7 @@ class BilingualDataset(torch.utils.data.Dataset):
         self.seq_length = seq_length
         self.ds =ds
         self.src_lang =src_lang
-        self.tgt_lanf =tgt_lang
+        self.tgt_lang =tgt_lang
         self.src_tokenizer = src_tokenizer
         self.tgt_tokenizer = tgt_tokenizer
 
