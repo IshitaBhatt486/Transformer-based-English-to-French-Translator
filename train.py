@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from datasets import load_dataset
 from dataset import BilingualDataset, causal_mask
-from model import buildTransformer
+from model import build_Transformer
 from config import get_config, get_weights_file_path
 from tqdm import tqdm
 
