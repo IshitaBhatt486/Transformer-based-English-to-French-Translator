@@ -80,5 +80,5 @@ class BilingualDataset(torch.utils.data.Dataset):
         }
 
 def causal_mask(size):
-    mask = torch.triu(torch.ones((1,size , size), diagonal=1).type(torch.int64)) # upper triangular matrix with 1s above the diagonal
-    return mask==0
+    mask = torch.triu(torch.ones((1, size, size)).type(torch.int64), diagonal=1)
+    return mask == 0
