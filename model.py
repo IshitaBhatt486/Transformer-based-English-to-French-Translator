@@ -151,9 +151,10 @@ class EncoderBlock(nn.Module):
 
 class Encoder(nn.Module):
 
-    def __init__(self, encoder_block: EncoderBlock, num_layers: int) -> None:
+    def __init__(self, layers: nn.ModuleList, num_layers: int):
         super().__init__()
 
+        self.layers = layers
         self.num_layers = num_layers
         self.norm = LayerNormalization()
 
@@ -254,8 +255,8 @@ def build_Transformer(src_vocab_size: int, tgt_vocab_size: int, src_seq_len: int
         decoder_block=DecoderBlock(decoder_self_attention_block, decoder_cross_attention_block, feed_forward_block, dropout)
         decoder_blocks.append(decoder_block)
 
-    encoder = nn.ModuleList(encoder_blocks)
-    decoder = nn.ModuleList(decoder_blocks)
+    encoder = Encoder(nn.ModuleList(encoder_blocks), N)
+    decoder = Decoder(nn.ModuleList(decoder_blocks))
 
     projection_layer = ProjectionLayer(dmodel, tgt_vocab_size)
 
