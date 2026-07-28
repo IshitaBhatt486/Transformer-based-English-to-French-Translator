@@ -88,7 +88,7 @@ def get_all_sentences(ds, lang):
         yield item['translation'][lang]
 
 def get_or_build_tokenizer(config, ds, lang):
-    tokenizer_path = Path(config["tokenizer_file"]).format(lang)
+    tokenizer_path = Path(config["tokenizer_file"].format(lang))
 
     if not Path.exists(tokenizer_path):
         tokenizer = Tokenizer(WordLevel(unk_token="[UNK]")) #unknown
