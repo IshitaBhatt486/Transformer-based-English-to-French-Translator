@@ -17,7 +17,7 @@ class BilingualDataset(torch.utils.data.Dataset):
         self.pad_token= torch.tensor([src_tokenizer.token_to_id("[PAD]")], dtype=torch.int64)
 
     def __len__(self):
-        return len(self.DS)
+        return len(self.ds)
 
     def __getitem__(self, index: any) -> any:
         src_target_pair = self.ds[index]
