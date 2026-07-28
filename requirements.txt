@@ -2,3 +2,7 @@ torch
 datasets
 tokenizers
 altair
+pandas
+numpy
+tqdm
+tensorboard

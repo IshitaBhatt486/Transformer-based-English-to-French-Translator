@@ -29,12 +29,13 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term) # for even positions
         pe[:, 1::2] = torch.cos(position * div_term) # for odd positions
 
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0) # (1, seq_length, dmodel)
 
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + self.pe[:x.shape[0], :x.shape[1], :].requires_grad_(False)
+        # x: (batch_size, seq_len, dmodel)
+        x = x + self.pe[:, :x.shape[1], :].requires_grad_(False)
         return self.dropout(x)
 
 class LayerNormalization(nn.Module):
@@ -116,7 +117,7 @@ class MultiHeadAttentionBlock(nn.Module):
         key = key.view(key.shape[0], key.shape[1], self.h, self.d_k).transpose(1, 2)
         value = value.view(value.shape[0], value.shape[1], self.h, self.d_k).transpose(1, 2)
 
-        x, self.attention_scpres = self.attention(query, key, value, mask, self.dropout)
+        x, self.attention_scores = self.attention(query, key, value, mask, self.dropout)
 
         #(Batch size, h, sequence length, d_k) -> (Batch size, sequence length, h, d_k) -> (Batch size, sequence length, dmodel)
         x=x.transpose(1,2).contiguous().view(x.shape[0], -1, self.h*self.d_k)

@@ -24,7 +24,7 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
     eos_index = tokenizer_tgt.token_to_id("[EOS]")
 
     encoder_output = model.encode(source, source_mask)
-    decoder_input = torch.empty(1, 1).fill_(sos_index).typeas(source).to(device)
+    decoder_input = torch.empty(1, 1).fill_(sos_index).type_as(source).to(device)
 
     while True:
         if decoder_input.size(1) >= max_length:
@@ -33,7 +33,7 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
         # target mask(decoder mask)
         decoder_mask = causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
 
-        output = model.decode(encoder_output, source_mask, decoder_input, decoder_mask)
+        output = model.decode(decoder_input, encoder_output, source_mask, decoder_mask)
 
         prob = model.project(output[:, -1]) #(last_token, vocab_size)
         _, next_word = torch.max(prob, dim=1) # greedy search
@@ -145,7 +145,11 @@ def get_model(config, vocab_src_length, vocab_tgt_length):
         vocab_tgt_length,
         config["seq_length"],
         config["seq_length"],
-        config["d_model"]
+        config["d_model"],
+        config["num_layers"],
+        config["num_heads"],
+        config["dropout_rate"],
+        config["d_ff"]
     )
     return model
 
@@ -166,7 +170,7 @@ def train_model(config):
     initial_epoch = 0
     global_step = 0
 
-    if config["preload"]:
+    if config["preload"] and config["preload"] != "none":
         model_filename = get_weights_file_path(config, config["preload"])
         print(f"Loading model weights from {model_filename}")
         state = torch.load(model_filename)
@@ -177,7 +181,7 @@ def train_model(config):
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
 
     for epoch in range(initial_epoch, config["num_epochs"]):
-        batch_iterator = tqdm(train_dataloader, desc=f'Processing epoch (epoch: 02d)')
+        batch_iterator = tqdm(train_dataloader, desc=f'Processing epoch {epoch:02d}')
 
         for batch in batch_iterator:
             model.train()
@@ -188,10 +192,10 @@ def train_model(config):
             encoder_mask = batch["encoder_mask"].to(device) #(0, 1, 1, seq_length)
             decoder_mask = batch["decoder_mask"].to(device) #(0, 1, seq_length, seq_length)
 
-            encoder_output = model.encoder(encoder_input, encoder_mask) #(batch_size, seq_length, d_model)
-            decoder_output = model.decoder(encoder_output, encoder_mask, decoder_input, decoder_mask) #(batch_size, seq_length, d_model)
+            encoder_output = model.encode(encoder_input, encoder_mask) #(batch_size, seq_length, d_model)
+            decoder_output = model.decode(decoder_input, encoder_output, encoder_mask, decoder_mask) #(batch_size, seq_length, d_model)
 
-            proj_output = model.projection(decoder_output) #(batch_size, seq_length, vocab_tgt_length)
+            proj_output = model.project(decoder_output) #(batch_size, seq_length, vocab_tgt_length)
 
             label =batch["label"].to(device) #(batch_size, seq_length)
             # (batch_size, seq_length, vocab_tgt_length) -> (batch_size * seq_length, vocab_tgt_length)
