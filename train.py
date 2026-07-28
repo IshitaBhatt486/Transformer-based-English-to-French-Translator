@@ -140,7 +140,7 @@ def get_ds(config):
     return train_dataloader, validation_dataloader, tokenizer_src, tokenizer_tgt
 
 def get_model(config, vocab_src_length, vocab_tgt_length):
-    model = build_transformer(
+    model = build_Transformer(
         vocab_src_length,
         vocab_tgt_length,
         config["seq_length"],
