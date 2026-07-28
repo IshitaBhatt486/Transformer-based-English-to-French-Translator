@@ -39,7 +39,7 @@ class BilingualDataset(torch.utils.data.Dataset):
                 self.sos_token,
                 torch.tensor(encode_input_tokens, dtype=torch.int64), 
                 self.eos_token,
-                torch.tensor([self.pad_token] * encoder_num_padding_tokens, dtype=torch.int64)
+                self.pad_token.repeat(encoder_num_padding_tokens)
             ]
         )
 
@@ -48,7 +48,7 @@ class BilingualDataset(torch.utils.data.Dataset):
             [
                 self.sos_token,
                 torch.tensor(decode_input_tokens, dtype=torch.int64),
-                torch.tensor([self.pad_token] * decoder_num_padding_tokens, dtype=torch.int64)
+                self.pad_token.repeat(decoder_num_padding_tokens)
             ]
         )
 
@@ -57,7 +57,7 @@ class BilingualDataset(torch.utils.data.Dataset):
             [
                 torch.tensor(decode_input_tokens, dtype=torch.int64),
                 self.eos_token,
-                torch.tensor([self.pad_token] * decoder_num_padding_tokens, dtype=torch.int64)
+                self.pad_token.repeat(decoder_num_padding_tokens)
             ]
         )
 
@@ -71,7 +71,7 @@ class BilingualDataset(torch.utils.data.Dataset):
             "decoder_input": decoder_input, # seq length
 
             "encoder_mask": (encoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int(), # (1,1,seq_length) mask for padding tokens
-            "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int() & causal_mask(decoder_input.size[0]), #  we only need to mask padding tokens here
+            "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int() & causal_mask(decoder_input.size(0)), #  we only need to mask padding tokens here
 
             "label": label, # seq length
 
