@@ -90,7 +90,7 @@ def get_all_sentences(ds, lang):
 def get_or_build_tokenizer(config, ds, lang):
     tokenizer_path = Path(config["tokenizer_file"].format(lang))
 
-    if not Path.exists(tokenizer_path):
+    if not tokenizer_path.exists():
         tokenizer = Tokenizer(WordLevel(unk_token="[UNK]")) #unknown
         tokenizer.pre_tokenizer = Whitespace()
 
