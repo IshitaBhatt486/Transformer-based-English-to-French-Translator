@@ -1,8 +1,8 @@
 torch
 datasets
 tokenizers
-altair
-pandas
 numpy
 tqdm
 tensorboard
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1

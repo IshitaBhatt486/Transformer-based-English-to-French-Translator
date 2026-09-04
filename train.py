@@ -1,13 +1,16 @@
 import torch
 import torch.nn as nn
 import warnings
+import argparse
+import random
+import numpy as np
 
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
 from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import DataLoader, Subset, random_split
 from torch.utils.tensorboard import SummaryWriter
 
 from datasets import load_dataset
@@ -114,10 +117,22 @@ def get_ds(config):
     tokenizer_src = get_or_build_tokenizer(config, ds_raw, config["src_lang"])
     tokenizer_tgt = get_or_build_tokenizer(config, ds_raw, config["tgt_lang"])
 
-    # 90% for training, 10% for validation
-    ds_train_size = int(0.9 *len(ds_raw))
-    ds_validation_size = len(ds_raw) - ds_train_size
-    ds_train_raw, ds_validation_raw = torch.utils.data.random_split(ds_raw, [ds_train_size, ds_validation_size])
+    # Remove examples that cannot fit instead of failing unpredictably mid-epoch.
+    valid_indices = []
+    for index, item in enumerate(ds_raw):
+        src_len = len(tokenizer_src.encode(item['translation'][config["src_lang"]]).ids)
+        tgt_len = len(tokenizer_tgt.encode(item['translation'][config["tgt_lang"]]).ids)
+        if src_len <= config["seq_length"] - 2 and tgt_len <= config["seq_length"] - 1:
+            valid_indices.append(index)
+    ds_filtered = Subset(ds_raw, valid_indices)
+    print(f"Using {len(ds_filtered):,}/{len(ds_raw):,} examples that fit seq_length={config['seq_length']}")
+
+    ds_train_size = int(0.9 * len(ds_filtered))
+    ds_validation_size = len(ds_filtered) - ds_train_size
+    generator = torch.Generator().manual_seed(config["seed"])
+    ds_train_raw, ds_validation_raw = random_split(
+        ds_filtered, [ds_train_size, ds_validation_size], generator=generator
+    )
 
     train_ds = BilingualDataset(ds_train_raw, tokenizer_src, tokenizer_tgt, config["src_lang"], config["tgt_lang"], config["seq_length"])
     validation_ds = BilingualDataset(ds_validation_raw, tokenizer_src, tokenizer_tgt, config["src_lang"], config["tgt_lang"], config["seq_length"])
@@ -125,7 +140,7 @@ def get_ds(config):
     max_len_src = 0
     max_len_tgt = 0
 
-    for item in ds_raw:
+    for item in ds_filtered:
         src_ids = tokenizer_src.encode(item['translation'][config["src_lang"]]).ids
         tgt_ids = tokenizer_tgt.encode(item['translation'][config["tgt_lang"]]).ids
         max_len_src = max(max_len_src, len(src_ids))
@@ -134,8 +149,9 @@ def get_ds(config):
     print(f"Max length of source sentences: {max_len_src}")
     print(f"Max length of target sentences: {max_len_tgt}")
 
-    train_dataloader = DataLoader(train_ds, batch_size=config["batch_size"], shuffle=True)
-    validation_dataloader = DataLoader(validation_ds, batch_size=1, shuffle=True) # batch size 1 to do one by one
+    loader_args = {"num_workers": config["num_workers"], "pin_memory": torch.cuda.is_available()}
+    train_dataloader = DataLoader(train_ds, batch_size=config["batch_size"], shuffle=True, **loader_args)
+    validation_dataloader = DataLoader(validation_ds, batch_size=1, shuffle=False, **loader_args)
 
     return train_dataloader, validation_dataloader, tokenizer_src, tokenizer_tgt
 
@@ -154,6 +170,11 @@ def get_model(config, vocab_src_length, vocab_tgt_length):
     return model
 
 def train_model(config):
+    random.seed(config["seed"])
+    np.random.seed(config["seed"])
+    torch.manual_seed(config["seed"])
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(config["seed"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -173,12 +194,13 @@ def train_model(config):
     if config["preload"] and config["preload"] != "none":
         model_filename = get_weights_file_path(config, config["preload"])
         print(f"Loading model weights from {model_filename}")
-        state = torch.load(model_filename)
+        state = torch.load(model_filename, map_location=device)
+        model.load_state_dict(state["model_state_dict"])
         initial_epoch = state["epoch"] + 1
         optimizer.load_state_dict(state["optimizer_state_dict"])
         global_step = state["global_step"]
 
-    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_tgt.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
 
     for epoch in range(initial_epoch, config["num_epochs"]):
         batch_iterator = tqdm(train_dataloader, desc=f'Processing epoch {epoch:02d}')
@@ -221,10 +243,26 @@ def train_model(config):
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
-            "global_step": global_step
+            "global_step": global_step,
+            "config": config,
         }, model_filename)
+    writer.close()
 
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
+    parser = argparse.ArgumentParser(description="Train the English-to-French Transformer")
+    parser.add_argument("--epochs", type=int)
+    parser.add_argument("--batch-size", type=int)
+    parser.add_argument("--preload", help="Checkpoint epoch (for example 03)")
+    parser.add_argument("--num-workers", type=int)
+    args = parser.parse_args()
     config = get_config()
+    if args.epochs is not None:
+        config["num_epochs"] = args.epochs
+    if args.batch_size is not None:
+        config["batch_size"] = args.batch_size
+    if args.preload is not None:
+        config["preload"] = args.preload
+    if args.num_workers is not None:
+        config["num_workers"] = args.num_workers
     train_model(config)

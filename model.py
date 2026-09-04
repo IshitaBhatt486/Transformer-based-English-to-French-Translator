@@ -49,7 +49,7 @@ class LayerNormalization(nn.Module):
 
     def forward(self, x):
         mean = x.mean(dim=-1, keepdim=True)
-        std = x.std(dim=-1, keepdim=True)
+        std = x.std(dim=-1, keepdim=True, unbiased=False)
 
         return self.alpha * (x - mean) / (std + self.eps) + self.bias
 
@@ -98,7 +98,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # (Batch size, h, seq_len, d_k) -> (Batch size, h, seq_len, seq_len)
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(dk)
         if mask is not None:
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            attention_scores.masked_fill_(~mask.bool(), torch.finfo(attention_scores.dtype).min)
 
         attention_scores = attention_scores.softmax(dim=-1) # (batch_size, h, seq_len, seq_len)
         if dropout is not None:

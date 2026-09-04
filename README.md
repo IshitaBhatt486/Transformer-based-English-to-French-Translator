@@ -7,6 +7,47 @@ A translation model
 Libraries used:
 - PyTorch
 
+## Quick start
+
+```bash
+python -m pip install -r requirements.txt
+python train.py --epochs 20 --batch-size 8
+python translate.py "Hello world"
+```
+
+Training writes versioned checkpoints to `weights/` and tokenizer artifacts to
+the project root. Keep the checkpoint and both tokenizer JSON files together.
+Use `--preload 03` to resume after checkpoint `tmodel_03.pt`.
+
+## Google Colab
+
+Open [`colab.ipynb`](colab.ipynb), select a T4 GPU, and run all cells. The
+notebook trains, saves artifacts to Google Drive, runs inference, and smoke-tests
+the API. The notebook clones the default GitHub branch, so push your current
+changes before running it.
+
+## API and container deployment
+
+Start the API locally:
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000
+curl -X POST http://localhost:8000/translate \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello world"}'
+```
+
+Or build the CPU container after placing trained artifacts in the repository:
+
+```bash
+docker build -t transformer-translator .
+docker run --rm -p 8000:8000 transformer-translator
+```
+
+Set `MODEL_CHECKPOINT` to select a specific checkpoint and `DEVICE=cpu` or
+`DEVICE=cuda` to select the inference device. The service exposes `GET /health`,
+`POST /translate`, and interactive documentation at `/docs`.
+
 # Project Motivation
 
 The Transformer architecture fundamentally changed deep learning by replacing recurrence with self-attention, enabling highly parallel training and significantly improving performance on sequence-to-sequence tasks.

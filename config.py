@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 def get_config():
@@ -11,9 +12,11 @@ def get_config():
         "model_folder": "weights",
         "model_filename": "tmodel_",
 
-        "batch_size": 8,
-        "num_epochs": 20,
-        "learning_rate": 0.001,
+        "batch_size": int(os.getenv("BATCH_SIZE", "8")),
+        "num_epochs": int(os.getenv("NUM_EPOCHS", "20")),
+        "learning_rate": float(os.getenv("LEARNING_RATE", "0.0001")),
+        "seed": int(os.getenv("SEED", "42")),
+        "num_workers": int(os.getenv("NUM_WORKERS", "2")),
 
         "num_layers": 4,
         "num_heads": 8,

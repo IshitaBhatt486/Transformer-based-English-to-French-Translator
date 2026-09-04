@@ -1,0 +1,8 @@
+.git
+__pycache__
+*.py[cod]
+.pytest_cache
+runs
+train.ipynb
+attention_visualization.ipynb
+inference.ipynb
