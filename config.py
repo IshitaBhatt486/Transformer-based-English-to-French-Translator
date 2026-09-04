@@ -9,7 +9,7 @@ def get_config():
         "seq_length": 128,
 
         "tokenizer_file": "tokenizer_{}.json",
-        "model_folder": "weights",
+        "model_folder": os.getenv("MODEL_FOLDER", "weights"),
         "model_filename": "tmodel_",
 
         "batch_size": int(os.getenv("BATCH_SIZE", "8")),
