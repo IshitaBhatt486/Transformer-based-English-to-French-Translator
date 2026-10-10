@@ -1,0 +1,25 @@
+{
+  "checkpoint": "weights\\tmodel_19.pt",
+  "decoded_validation_examples": 1000,
+  "decoding": "greedy argmax",
+  "validation_token_cross_entropy": 3.2104,
+  "bleu": 19.655,
+  "chrf": 43.928,
+  "examples": [
+    {
+      "source": "You would deserve to be pope at Rome, as well as at Paris.\"",
+      "reference": "Tu mériterais la papauté à Rome comme à Paris. »",
+      "prediction": "Vous aurez voulu être pape à Rome , tant à Paris ."
+    },
+    {
+      "source": "The squalls were furious: they seemed to bring the death of labour, a famine which would kill many men.",
+      "reference": "Les rafales s'étaient enragées, elles semblaient apporter la mort du travail, une disette qui tuerait beaucoup d'hommes.",
+      "prediction": "Les furent , on crut ramener la mort de travail , une faim qui beaucoup d ' hommes ."
+    },
+    {
+      "source": "'Ah! There is a witty saying that I have wasted on myself!",
+      "reference": "Ah! c’est un bon mot que je viens de me dire!",
+      "prediction": "Ah ! il y a un qui me fait perdre !"
+    }
+  ]
+}

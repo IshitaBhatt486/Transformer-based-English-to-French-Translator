@@ -4,5 +4,7 @@ tokenizers
 numpy
 tqdm
 tensorboard
+matplotlib
+sacrebleu
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
